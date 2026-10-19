@@ -1,1 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="h-full">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Y2K PORTFOLIO HUB - 2026 EDITION</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
+
+<script>
+tailwind.config = {
+theme: {
+extend: {
+fontFamily: {
+pixel: ['"Press Start 2P"', 'monospace'],
+vt: ['"VT323"', 'monospace'],
+tech: ['"Share Tech Mono"', 'monospace'],
+},
+colors: {
+y2k: {
+bg: '#080514',
+pink: '#ff007f',
+cyan: '#00f3ff',
+yellow: '#ffe600',
+purple: '#8b00ff',
+silver: '#c0c0c0',
+darkcard: '#120d26',
+}
+},
+boxShadow: {
+'neon-pink': '0 0 15px rgba(255, 0, 127, 0.6), inset 0 0 10px rgba(255, 0, 127, 0.4)',
+'neon-cyan': '0 0 15px rgba(0, 243, 255, 0.6), inset 0 0 10px rgba(0, 243, 255, 0.4)',
+'neon-yellow': '0 0 15px rgba(255, 230, 0, 0.6), inset 0 0 10px rgba(255, 230, 0, 0.4)',
+}
+}
+}
+}
+</script>
+
+<style>
+/* Background Grid Pattern */
+.cyber-grid {
+background-size: 40px 40px;
+background-image:
+linear-gradient(to right, rgba(0, 243, 255, 0.08) 1px, transparent 1px),
+linear-gradient(to bottom, rgba(255, 0, 127, 0.08) 1px, transparent 1px);
+}
+
+/* CRT Scanline Overlay */
+.crt-overlay::before {
+content: " ";
+display: block;
+position: fixed;
+top: 0; left: 0; bottom: 0; right: 0;
+background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+z-index: 100;
+background-size: 100% 4px, 6px 100%;
+pointer-events: none;
+}
+
+/* Glitch Animation */
+@keyframes glitch {
+0% { text-shadow: 2px 0 #ff007f, -2px 0 #00f3ff; }
+25% { text-shadow: -2px 0 #ff007f, 2px 0 #00f3ff; }
+50% { text-shadow: 1px -1px #ff007f, -1px 1px #00f3ff; }
+75% { text-shadow: -2px 1px #ff007f, 2px -1px #00f3ff; }
+100% { text-shadow: 2px 0 #ff007f, -2px 0 #00f3ff; }
+}
+.glitch-text {
+animation: glitch 2.5s infinite alternate;
+}
+
+/* Shake Animation for Locked Levels */
+@keyframes shake {
+0%, 100% { transform: translateX(0); }
+20% { transform: translateX(-6px) rotate(-1.5deg); }
+40% { transform: translateX(6px) rotate(1.5deg); }
+60% { transform: translateX(-4px); }
+80% { transform: translateX(4px); }
+}
+.animate-shake {
+animation: shake 0.35s ease-in-out;
+}
+
+/* Holographic Border Gradient */
+.holo-border {
+border: 2px solid transparent;
+border-image: linear-gradient(135deg, #00f3ff, #ff007f, #ffe600) 1;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+width: 8px;
+}
+::-webkit-scrollbar-track {
+background: #080514;
+}
+::-webkit-scrollbar-thumb {
+background: #ff007f;
+border-radius: 4px;
+}
+</style>
+</head>
+<body class="bg-y2k-bg text-white font-tech h-full min-h-screen cyber-grid relative crt-overlay select-none flex flex-col justify-between overflow-x-hidden">
+
+<!-- Header & Control Bar -->
+<header class="w-full p-4 border-b-2 border-y2k-pink/50 bg-black/60 backdrop-blur-md sticky top-0 z-50 flex justify-between items-center px-6">
+<div class="flex items-center space-x-3">
+<span class="inline-block w-3 h-3 rounded-full bg-y2k-pink animate-ping"></span>
+<h1 class="font-pixel text-xs md:text-sm text-y2k-cyan tracking-wider uppercase glitch-text">
+SYSTEM v2.0.26 // PORTFOLIO
+</h1>
+</div>
+
+<!-- Controls: CRT & Sound Toggles -->
+<div class="flex items-center space-x-3 text-xs">
+<button id="audio-toggle" class="px-3 py-1 bg-y2k-darkcard border border-y2k-cyan text-y2k-cyan hover:bg-y2k-cyan hover:text-black transition-all rounded font-pixel flex items-center gap-1">
+🔊 <span id="audio-status">SFX: ON</span>
+</button>
+<button id="crt-toggle" class="px-3 py-1 bg-y2k-darkcard border border-y2k-pink text-y2k-pink hover:bg-y2k-pink hover:text-black transition-all rounded font-pixel flex items-center gap-1">
+📺 <span id="crt-status">CRT: ON</span>
+</button>
+</div>
+</header>
+
+<!-- Main Content Container -->
+<main class="container mx-auto px-4 py-8 max-w-5xl flex-grow flex flex-col items-center justify-center">
+
+<!-- Profile Section (Center) -->
+<section class="w-full max-w-xl bg-y2k-darkcard/90 border-2 border-y2k-cyan p-6 rounded-2xl shadow-neon-cyan mb-10 text-center relative backdrop-blur-md transform transition-transform hover:scale-[1.01]">
+
+<!-- Decorative Corner Accents -->
+<div class="absolute -top-2 -left-2 w-4 h-4 border-t-2 border-l-2 border-y2k-yellow"></div>
+<div class="absolute -top-2 -right-2 w-4 h-4 border-t-2 border-r-2 border-y2k-yellow"></div>
+<div class="absolute -bottom-2 -left-2 w-4 h-4 border-b-2 border-l-2 border-y2k-yellow"></div>
+<div class="absolute -bottom-2 -right-2 w-4 h-4 border-b-2 border-r-2 border-y2k-yellow"></div>
+
+<!-- Avatar with Pulsing Hologram Glow -->
+<div class="relative w-28 h-28 mx-auto mb-4 group">
+<div class="absolute inset-0 rounded-full bg-gradient-to-r from-y2k-pink via-y2k-yellow to-y2k-cyan blur-md opacity-75 group-hover:opacity-100 animate-spin" style="animation-duration: 8s;"></div>
+<img
+src="https://api.dicebear.com/7.x/pixel-art/svg?seed=CyberPlayer2026&backgroundColor=0b091a"
+alt="Avatar"
+class="relative w-full h-full rounded-full border-2 border-y2k-cyan bg-black object-cover p-1"
+onerror="this.src='https://placehold.co/120x120/120d26/00f3ff?text=AVATAR'"
+/>
+<span class="absolute bottom-1 right-1 bg-y2k-pink text-black text-[10px] font-pixel px-1.5 py-0.5 rounded-full border border-white">LVL.4</span>
+</div>
+
+<!-- Player Name -->
+<h2 class="text-2xl md:text-3xl font-pixel text-y2k-yellow tracking-widest mb-1 drop-shadow-[0_2px_4px_rgba(255,230,0,0.5)]">
+PLAYER_ONE
+</h2>
+<p class="text-xs text-y2k-cyan font-tech tracking-wider uppercase mb-4">
+&lt; FRONTEND CYBER DEVELOPER / CREATOR &gt;
+</p>
+
+<!-- Status Bar Panel -->
+<div class="bg-black/80 border border-y2k-pink/60 p-4 rounded-xl text-left space-y-2">
+<div class="flex justify-between items-center text-xs font-pixel">
+<span class="text-y2k-pink flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-y2k-pink animate-pulse"></span>
+STATUS: ONLINE
+</span>
+<span class="text-y2k-yellow font-bold">COMPLETED: 4 / 16</span>
+</div>
+
+<!-- Progress Bar (4/16 = 25%) -->
+<div class="w-full h-4 bg-y2k-darkcard border border-y2k-cyan/50 rounded-full p-0.5 relative overflow-hidden">
+<div class="h-full bg-gradient-to-r from-y2k-cyan via-y2k-pink to-y2k-yellow rounded-full transition-all duration-1000 shadow-[0_0_10px_#00f3ff]" style="width: 25%;"></div>
+</div>
+
+<div class="flex justify-between text-[11px] text-gray-400 font-tech">
+<span>PROGRESS: 25%</span>
+<span>NEXT: WEEK 5 (LOCKED)</span>
+</div>
+</div>
+</section>
+
+<!-- Notification Toast Box -->
+<div id="toast" class="opacity-0 transition-opacity duration-300 fixed top-20 right-6 z-50 bg-red-900/90 border-2 border-red-500 text-red-200 px-4 py-2 rounded-lg shadow-lg font-pixel text-xs flex items-center gap-2 pointer-events-none">
+<span>⚠️</span> <span id="toast-msg">ACCESS DENIED</span>
+</div>
+
+<!-- Level Cards Grid (4x4 Matrix) -->
+<section class="w-full">
+<div class="flex items-center justify-between mb-4 px-2">
+<h3 class="font-pixel text-sm text-y2k-cyan uppercase flex items-center gap-2">
+<span>⚡</span> STAGE SELECT (16 WEEKS)
+</h3>
+<span class="text-xs text-y2k-pink font-vt text-base">SELECT A LEVEL TO LAUNCH</span>
+</div>
+
+<!-- Grid Container -->
+<div id="grid-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<!-- Level Cards dynamically injected via JavaScript -->
+</div>
+</section>
+
+</main>
+
+<!-- Footer -->
+<footer class="w-full border-t border-y2k-pink/30 bg-black/80 py-4 text-center text-xs text-gray-500 font-vt text-lg mt-8">
+<p>Y2K PORTFOLIO SYSTEM © 2026 // ALL RIGHTS RESERVED</p>
+</footer>
+
+<!-- JavaScript Code -->
+<script>
+// Audio Context Setup for 8-bit Sound Effects
+let audioCtx = null;
+let sfxEnabled = true;
+
+function initAudio() {
+if (!audioCtx) {
+audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+}
+
+// Play synthesized hover beep sound
+function playHoverSound() {
+if (!sfxEnabled) return;
+try {
+initAudio();
+const osc = audioCtx.createOscillator();
+const gain = audioCtx.createGain();
+osc.type = 'sine';
+osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.05);
+gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+osc.connect(gain);
+gain.connect(audioCtx.destination);
+osc.start();
+osc.stop(audioCtx.currentTime + 0.05);
+} catch (e) {}
+}
+
+// Play synthesized click success sound
+function playClickSound() {
+if (!sfxEnabled) return;
+try {
+initAudio();
+const osc = audioCtx.createOscillator();
+const gain = audioCtx.createGain();
+osc.type = 'square';
+osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.08);
+gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+osc.connect(gain);
+gain.connect(audioCtx.destination);
+osc.start();
+osc.stop(audioCtx.currentTime + 0.2);
+} catch (e) {}
+}
+
+// Play synthesized locked error sound
+function playLockedSound() {
+if (!sfxEnabled) return;
+try {
+initAudio();
+const osc = audioCtx.createOscillator();
+const gain = audioCtx.createGain();
+osc.type = 'sawtooth';
+osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+osc.frequency.setValueAtTime(110, audioCtx.currentTime + 0.1);
+gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+osc.connect(gain);
+gain.connect(audioCtx.destination);
+osc.start();
+osc.stop(audioCtx.currentTime + 0.25);
+} catch (e) {}
+}
+
+// Data for 16 Stages
+const levelsData = [
+{ week: 1, title: "Week 1 - 數位名片", url: "w1/index.html", unlocked: true },
+{ week: 2, title: "Week 2 - 今天吃甚麼?", url: "w2/index.html", unlocked: true },
+{ week: 3, title: "Week 3 - 課堂作業 3", url: "w3/index.html", unlocked: true },
+{ week: 4, title: "Week 4 - 課堂作業 4", url: "w4/index.html", unlocked: true },
+{ week: 5, title: "Week 5 - 課堂作業 5", url: "w5/index.html", unlocked: false },
+{ week: 6, title: "Week 6 - 課堂作業 6", url: "w6/index.html", unlocked: false },
+{ week: 7, title: "Week 7 - 課堂作業 7", url: "w7/index.html", unlocked: false },
+{ week: 8, title: "Week 8 - 期中專案", url: "w8/index.html", unlocked: false },
+{ week: 9, title: "Week 9 - 課堂作業 9", url: "w9/index.html", unlocked: false },
+{ week: 10, title: "Week 10 - 課堂作業 10", url: "w10/index.html", unlocked: false },
+{ week: 11, title: "Week 11 - 課堂作業 11", url: "w11/index.html", unlocked: false },
+{ week: 12, title: "Week 12 - 課堂作業 12", url: "w12/index.html", unlocked: false },
+{ week: 13, title: "Week 13 - 課堂作業 13", url: "w13/index.html", unlocked: false },
+{ week: 14, title: "Week 14 - 課堂作業 14", url: "w14/index.html", unlocked: false },
+{ week: 15, title: "Week 15 - 課堂作業 15", url: "w15/index.html", unlocked: false },
+{ week: 16, title: "Week 16 - 期末專案", url: "w16/index.html", unlocked: false },
+];
+
+// Show Notification Toast
+function showToast(msg) {
+const toast = document.getElementById('toast');
+const toastMsg = document.getElementById('toast-msg');
+toastMsg.innerText = msg;
+toast.classList.remove('opacity-0');
+toast.classList.add('opacity-100');
+setTimeout(() => {
+toast.classList.remove('opacity-100');
+toast.classList.add('opacity-0');
+}, 2000);
+}
+
+// Render Stage Cards
+function renderGrid() {
+const grid = document.getElementById('grid-container');
+grid.innerHTML = '';
+
+levelsData.forEach(level => {
+const card = document.createElement('div');
+
+if (level.unlocked) {
+// Unlocked Card Styling
+card.className = `
+relative bg-y2k-darkcard/80 border-2 border-y2k-cyan p-4 rounded-xl
+shadow-[0_0_10px_rgba(0,243,255,0.2)] hover:shadow-neon-cyan hover:border-y2k-yellow
+transition-all duration-300 transform hover:-translate-y-1 hover:scale-105
+cursor-pointer flex flex-col justify-between h-36 group backdrop-blur-sm
+`;
+
+card.innerHTML = `
+<div class="flex justify-between items-start">
+<span class="font-pixel text-xs text-y2k-yellow bg-black/60 px-2 py-1 rounded border border-y2k-yellow/40">
+W${level.week}
+</span>
+<span class="text-xs bg-y2k-cyan text-black font-pixel px-1.5 py-0.5 rounded font-bold">
+OPEN
+</span>
+</div>
+
+<div class="my-2">
+<h4 class="font-tech text-base text-white font-bold group-hover:text-y2k-cyan transition-colors line-clamp-2">
+${level.title}
+</h4>
+</div>
+
+<div class="flex justify-between items-center text-[10px] text-y2k-cyan/80 font-pixel">
+<span>[CLEAR]</span>
+<span class="group-hover:translate-x-1 transition-transform">LAUNCH ▶</span>
+</div>
+`;
+
+card.addEventListener('mouseenter', () => playHoverSound());
+card.addEventListener('click', () => {
+playClickSound();
+setTimeout(() => {
+window.location.href = level.url;
+}, 150);
+});
+
+} else {
+// Locked Card Styling
+card.className = `
+relative bg-gray-900/40 border border-gray-700/60 p-4 rounded-xl
+opacity-60 hover:opacity-90 transition-all duration-200
+cursor-not-allowed flex flex-col justify-between h-36 backdrop-blur-sm group select-none
+`;
+
+card.innerHTML = `
+<div class="flex justify-between items-start">
+<span class="font-pixel text-xs text-gray-500 bg-black/50 px-2 py-1 rounded">
+W${level.week}
+</span>
+<span class="text-sm">🔒</span>
+</div>
+
+<div class="my-2">
+<h4 class="font-tech text-sm text-gray-400 font-medium">
+${level.title}
+</h4>
+</div>
+
+<div class="flex justify-between items-center text-[10px] text-gray-500 font-pixel">
+<span>STATUS: LOCKED</span>
+<span class="text-red-400">DENIED</span>
+</div>
+`;
+
+// Hover Warning & Shake
+card.addEventListener('mouseenter', () => {
+playLockedSound();
+card.classList.add('animate-shake', 'border-red-500/80');
+setTimeout(() => card.classList.remove('animate-shake', 'border-red-500/80'), 350);
+});
+
+// Click Warning
+card.addEventListener('click', (e) => {
+e.preventDefault();
+playLockedSound();
+card.classList.add('animate-shake', 'border-red-500');
+showToast(`SYSTEM LOCKED: W${level.week} ACCESS DENIED`);
+setTimeout(() => card.classList.remove('animate-shake', 'border-red-500'), 350);
+});
+}
+
+grid.appendChild(card);
+});
+}
+
+// Toggle CRT Scanlines
+document.getElementById('crt-toggle').addEventListener('click', () => {
+document.body.classList.toggle('crt-overlay');
+const crtStatus = document.getElementById('crt-status');
+const isCrt = document.body.classList.contains('crt-overlay');
+crtStatus.innerText = isCrt ? 'CRT: ON' : 'CRT: OFF';
+playClickSound();
+});
+
+// Toggle Audio Effects
+document.getElementById('audio-toggle').addEventListener('click', () => {
+sfxEnabled = !sfxEnabled;
+const audioStatus = document.getElementById('audio-status');
+audioStatus.innerText = sfxEnabled ? 'SFX: ON' : 'SFX: OFF';
+if (sfxEnabled) playClickSound();
+});
+
+// Initialize Page
+window.addEventListener('DOMContentLoaded', () => {
+renderGrid();
+});
+</script>
+</body>
+</html>
 
