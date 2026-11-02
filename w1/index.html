@@ -1,75 +1,22 @@
-font-size: 0.85rem;
-        }
-    </style>
-</head>
-<body>
-
-    <h1>今天吃甚麼？</h1>
-    <p class="subtitle">Week 2 - Ứng dụng chọn món ăn ngẫu nhiên</p>
-
-    <div class="container">
-        <div class="result-box">
-            <div id="foodResult">Bấm nút bên dưới để chọn món!</div>
+<!-- Ảnh đại diện -->
+        <div class="avatar">⚡</div>
+        
+        <!-- Thông tin thành viên -->
+        <h2>PLAYER_ONE</h2>
+        <div class="title">// HỆ THỐNG KỸ THUẬT SỐ</div>
+        
+        <div class="info">
+            <p>⚡ <strong>CODE:</strong> #W1-STAGESELECT</p>
+            <p>📧 <strong>EMAIL:</strong> user@cybernet.com</p>
+            <p>🌐 <strong>STATUS:</strong> ACCESS_GRANTED</p>
         </div>
         
-        <button class="btn" id="rollBtn">QUAY NGẪU NHIÊN</button>
-
-        <div class="list-section">
-            <h3>Danh sách thực đơn hiện tại:</h3>
-            <div class="food-tags" id="foodTagsContainer"></div>
+        <!-- Các cổng kết nối -->
+        <div class="links">
+            <a href="https://facebook.com" target="_blank">> KẾT NỐI FACEBOOK</a>
+            <a href="https://instagram.com" target="_blank">> KẾT NỐI INSTAGRAM</a>
         </div>
     </div>
 
-    <script>
-        // Danh sách các món ăn mặc định
-        const foodList = [
-            "Cơm tấm sườn bì chả", "Phở bò tái nạm", "Bún chả cá", 
-            "Bánh mì thịt nướng", "Gà rán KFC", "Mì Ý Bolognese", 
-            "Sushi / Sashimi", "Lẩu Thái chua cay", "Bún đậu mắm tôm",
-            "Pizza Hải sản", "Cơm rang dưa bò", "Hủ tiếu Nam Vang"
-        ];
-
-        const foodResult = document.getElementById('foodResult');
-        const rollBtn = document.getElementById('rollBtn');
-        const tagsContainer = document.getElementById('foodTagsContainer');
-
-        // Hiển thị danh sách các món ăn lên giao diện dưới dạng tag
-        function displayTags() {
-            tagsContainer.innerHTML = foodList.map(food => `<span class="tag">${food}</span>`).join('');
-        }
-
-        // Xử lý hiệu ứng quay random và chọn món
-        rollBtn.addEventListener('click', () => {
-            rollBtn.disabled = true;
-            let counter = 0;
-            
-            // Tạo hiệu ứng nhảy chữ liên tục trước khi dừng ở kết quả cuối
-            const interval = setInterval(() => {
-                const randomIndex = Math.floor(Math.random() * foodList.length);
-                foodResult.innerText = foodList[randomIndex];
-                foodResult.style.transform = "scale(1.05)";
-                counter++;
-                
-                if (counter > 15) {
-                    clearInterval(interval);
-                    // Chọn kết quả chính thức cuối cùng
-                    const finalIndex = Math.floor(Math.random() * foodList.length);
-                    foodResult.innerText = `✨ ${foodList[finalIndex]} ✨`;
-                    foodResult.style.transform = "scale(1.15)";
-                    foodResult.style.color = "#ff4a6b";
-                    
-                    // Trả lại trạng thái cũ sau hiệu ứng
-                    setTimeout(() => {
-                        foodResult.style.transform = "scale(1)";
-                        foodResult.style.color = "#00fff5";
-                        rollBtn.disabled = false;
-                    }, 500);
-                }
-            }, 70);
-        });
-
-        // Khởi tạo giao diện ban đầu
-        displayTags();
-    </script>
 </body>
 </html>
