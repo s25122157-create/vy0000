@@ -1,189 +1,368 @@
-!DOCTYPE html>
-<html lang="zh-TW">
+<!DOCTYPE html>
+<html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>今天吃什麼？隨機抽籤機</title>
+  <title>PLAYER 1 PORTFOLIO - 電玩闖關作品集</title>
+  <!-- 引入復古像素字型 (Press Start 2P) -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+ 
   <style>
-    /* 1. 全局樣式設定：活潑黃橘色漸層 */
-    body {
+    :root {
+      --bg-color: #0d0e15;
+      --panel-bg: #181a26;
+      --border-color: #ffffff;
+      --primary-yellow: #f8b800;
+      --neon-green: #00ff66;
+      --neon-red: #ff3366;
+      --neon-blue: #00ccff;
+      --text-white: #f0f0f0;
+      --font-pixel: 'Press Start 2P', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
       margin: 0;
-      padding: 20px;
-      min-height: 100vh;
-      background: linear-gradient(135deg, #FFB703, #FB8500);
-      font-family: Arial, sans-serif;
+      padding: 0;
+      font-family: var(--font-pixel), sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-white);
       display: flex;
       justify-content: center;
       align-items: center;
-      box-sizing: border-box;
+      min-height: 100vh;
+      padding: 20px;
+      overflow-x: hidden;
+      /* 經典 CRT 電視掃描線效果 */
+      background-image: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      background-size: 100% 4px, 6px 100%;
     }
 
-    /* 2. 主卡片容器 */
-    .card {
-      background: #FFFFFF;
-      padding: 30px 20px;
-      border-radius: 20px;
-      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-      text-align: center;
-      max-width: 380px;
+    /* 像素邊框通用樣式 */
+    .pixel-box {
+      background-color: var(--panel-bg);
+      border: 4px solid var(--border-color);
+      box-shadow:
+        0 -4px 0 0 var(--border-color),
+        0 4px 0 0 var(--border-color),
+        -4px 0 0 0 var(--border-color),
+        4px 0 0 0 var(--border-color);
+      position: relative;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    /* 主要容器 */
+    .game-container {
       width: 100%;
+      max-width: 900px;
     }
 
-    /* 3. 標題樣式 */
-    h1 {
-      color: #D00000;
-      font-size: 26px;
-      margin-top: 0;
-      margin-bottom: 15px;
+    /* 頂部玩家 HUD */
+    .hud-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
     }
 
-    /* 4. 圖片顯示區域 */
-    #image-box {
-      margin: 15px 0;
-      border-radius: 12px;
-      overflow: hidden;
+    .player-profile {
+      display: flex;
+      align-items: center;
+      gap: 15px;
     }
 
-    #food-img {
-      width: 100%;
-      height: 200px;
-      object-fit: cover;
-      display: block;
+    .avatar {
+      width: 48px;
+      height: 48px;
+      background: var(--primary-yellow);
+      border: 3px solid #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 24px;
     }
 
-    /* 5. 按鈕樣式與動畫效果 */
-    .button-group {
+    .status-bars {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 6px;
+      font-size: 10px;
     }
 
-    button, a {
-      display: block;
-      padding: 12px 20px;
-      font-size: 18px;
-      font-weight: bold;
-      border-radius: 25px;
-      border: none;
-      cursor: pointer;
+    .bar-container {
+      width: 150px;
+      height: 14px;
+      background: #333;
+      border: 2px solid #fff;
+      position: relative;
+    }
+
+    .bar-fill-hp {
+      width: 85%;
+      height: 100%;
+      background: var(--neon-red);
+    }
+
+    .bar-fill-exp {
+      width: 80%;
+      height: 100%;
+      background: var(--neon-blue);
+    }
+
+    .score-board {
+      text-align: right;
+      font-size: 12px;
+      color: var(--primary-yellow);
+    }
+
+    /* 主標題閃爍效果 */
+    .game-title {
+      text-align: center;
+      margin: 25px 0;
+      color: var(--primary-yellow);
+      font-size: 20px;
+      line-height: 1.5;
+      text-shadow: 3px 3px #000;
+      animation: blink 1.2s infinite alternate;
+    }
+
+    @keyframes blink {
+      0% { opacity: 1; }
+      100% { opacity: 0.7; }
+    }
+
+    /* 關卡選單區塊 */
+    .stage-select-title {
+      color: var(--neon-green);
+      font-size: 12px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .stages-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    /* 單個關卡卡片 (Button-like) */
+    .stage-card {
+      background: #111420;
+      border: 3px solid #fff;
+      padding: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       text-decoration: none;
-      box-sizing: border-box;
-      transition: transform 0.1s ease;
+      color: var(--text-white);
+      cursor: pointer;
+      transition: transform 0.1s, background-color 0.2s, border-color 0.2s;
+      position: relative;
     }
 
-    button:active, a:active {
-      transform: scale(0.95);
+    .stage-card:hover {
+      background-color: #22273a;
+      border-color: var(--primary-yellow);
+      transform: translateX(6px);
     }
 
-    /* 點我抽籤按鈕 */
-    #draw-btn {
-      background-color: #FFB703;
-      color: #000;
+    .stage-card:active {
+      transform: scale(0.98);
     }
 
-    /* 馬上出發按鈕 */
-    #map-btn {
-      background-color: #023047;
-      color: #FFF;
+    .stage-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
     }
 
-    /* 6. 生動彈跳動畫 (Bounce) */
-    .bounce {
-      animation: pop 0.4s ease-in-out;
+    .stage-num {
+      color: var(--primary-yellow);
+      font-size: 14px;
     }
 
-    @keyframes pop {
-      0% { transform: scale(0.5); opacity: 0; }
-      70% { transform: scale(1.1); }
-      100% { transform: scale(1); opacity: 1; }
+    .stage-info h3 {
+      font-size: 12px;
+      color: #fff;
+      margin-bottom: 6px;
     }
 
-    /* 隱藏元素 */
-    .hidden {
-      display: none !important;
+    .stage-info p {
+      font-size: 8px;
+      color: #aaa;
+      line-height: 1.4;
+    }
+
+    .stage-badge {
+      font-size: 8px;
+      padding: 4px 8px;
+      background: #333;
+      border: 1px solid #fff;
+      color: var(--neon-green);
+    }
+
+    /* 作業 3 高亮樣式 */
+    .stage-card.unlocked-stage {
+      border-color: var(--primary-yellow);
+      background: #1e1b10;
+    }
+
+    .stage-card.unlocked-stage:hover {
+      background: #2d2815;
+    }
+
+    /* BOSS 關卡風格 */
+    .stage-card.boss-stage {
+      border-color: var(--neon-red);
+    }
+
+    .stage-card.boss-stage:hover {
+      border-color: #ff6699;
+      background: #2a0e18;
+    }
+
+    .stage-card.boss-stage .stage-num {
+      color: var(--neon-red);
+    }
+
+    /* 底部 Arcade 頁腳 */
+    .footer-panel {
+      text-align: center;
+      font-size: 8px;
+      color: #777;
+      margin-top: 10px;
+      line-height: 1.8;
+    }
+
+    /* 響應式調整 */
+    @media (max-width: 600px) {
+      .game-title { font-size: 14px; }
+      .stage-card { flex-direction: column; align-items: flex-start; gap: 10px; }
+      .stage-badge { align-self: flex-end; }
+      .hud-header { flex-direction: column; align-items: flex-start; }
     }
   </style>
 </head>
 <body>
 
-  <div class="card">
-    <!-- 大標題 -->
-    <h1 id="title">今天吃什麼？🍴</h1>
+  <div class="game-container">
+   
+    <!-- 頂部資訊欄 (HUD) -->
+    <header class="pixel-box hud-header">
+      <div class="player-profile">
+        <div class="avatar">👾</div>
+        <div class="status-bars">
+          <div>P1: DEV_STUDENT</div>
+          <div style="display: flex; align-items: center; gap: 5px;">
+            HP <div class="bar-container"><div class="bar-fill-hp"></div></div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 5px;">
+            MP <div class="bar-container"><div class="bar-fill-exp"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="score-board">
+        <div>SCORE: 99990</div>
+        <div style="font-size: 9px; color: #888; margin-top: 4px;">CLASS: WEB DEV 101</div>
+      </div>
+    </header>
 
-    <!-- 食物照片區塊 -->
-    <div id="image-box" class="hidden">
-      <img id="food-img" src="" alt="Food Picture">
-    </div>
+    <!-- 主標題區 -->
+    <h1 class="game-title">SELECT YOUR STAGE</h1>
 
-    <!-- 功能按鈕區塊 -->
-    <div class="button-group">
-      <button id="draw-btn" onclick="startDraw()">點我抽籤 🎲</button>
-      <a id="map-btn" class="hidden" href="#" target="_blank" rel="noopener noreferrer">馬上出發 🚗</a>
-    </div>
+    <!-- 關卡地圖/選單 (STAGE MENU) -->
+    <main class="pixel-box">
+      <div class="stage-select-title">-- WORLD 1: HOMEWORK PORTFOLIO --</div>
+     
+      <div class="stages-grid">
+
+        <!-- 關卡 1 -->
+        <a href="./hw1/index.html" class="stage-card" onclick="playSelectSound()">
+          <div class="stage-left">
+            <span class="stage-num">1-1</span>
+            <div class="stage-info">
+              <h3>STAGE 1: 個人自我介紹</h3>
+              <p>HTML 基礎標籤 / CSS 靜態排版入門</p>
+            </div>
+          </div>
+          <span class="stage-badge">CLEARED ★</span>
+        </a>
+
+        <!-- 關卡 2 -->
+        <a href="./hw2/index.html" class="stage-card" onclick="playSelectSound()">
+          <div class="stage-left">
+            <span class="stage-num">1-2</span>
+            <div class="stage-info">
+              <h3>STAGE 2: 響應式餐廳菜單</h3>
+              <p>Flexbox 排版 / CSS Media Queries 媒體查詢</p>
+            </div>
+          </div>
+          <span class="stage-badge">CLEARED ★</span>
+        </a>
+
+        <!-- 關卡 3：已加入迷因產生器 -->
+        <a href="./hw3/index.html" class="stage-card unlocked-stage" onclick="playSelectSound()">
+          <div class="stage-left">
+            <span class="stage-num">1-3</span>
+            <div class="stage-info">
+              <h3 style="color: var(--primary-yellow);">STAGE 3: 自定義迷因產生器 (Meme Generator)</h3>
+              <p>Canvas 繪圖 / 本機圖片上傳 / html2canvas 截圖下載</p>
+            </div>
+          </div>
+          <span class="stage-badge" style="color: var(--primary-yellow); border-color: var(--primary-yellow);">UNLOCKED 🔓</span>
+        </a>
+
+        <!-- BOSS 關卡 -->
+        <a href="./final-project/index.html" class="stage-card boss-stage" onclick="playSelectSound()">
+          <div class="stage-left">
+            <span class="stage-num">1-4</span>
+            <div class="stage-info">
+              <h3 style="color: var(--neon-red);">BOSS: 期末專題作品</h3>
+              <p>全端整合 / API 資料串接 / 動態互動網頁</p>
+            </div>
+          </div>
+          <span class="stage-badge" style="color: var(--neon-red); border-color: var(--neon-red);">FINAL BOSS ☠</span>
+        </a>
+
+      </div>
+    </main>
+
+    <!-- 頁腳 -->
+    <footer class="pixel-box footer-panel">
+      <p>© 2026 PLAYER 1. ALL RIGHTS RESERVED.</p>
+      <p>PRESS [START] OR CLICK TO ENTER STAGE</p>
+    </footer>
+
   </div>
 
+  <!-- 輕量音效腳本 (Web Audio API) -->
   <script>
-    // 5 個餐廳選項與圖片網址
-    const foods = [
-      {
-        name: "越南店 🍜",
-        query: "越南料理",
-        image: "https://picsum.photos/id/1080/600/400"
-      },
-      {
-        name: "鴨肉飯 🦆",
-        query: "鴨肉飯",
-        image: "https://picsum.photos/id/225/600/400"
-      },
-      {
-        name: "深水食堂 🍲",
-        query: "深水食堂",
-        image: "https://picsum.photos/id/292/600/400"
-      },
-      {
-        name: "麥當勞 🍔",
-        query: "麥當勞",
-        image: "https://picsum.photos/id/1060/600/400"
-      },
-      {
-        name: "鹹酥雞 🍗",
-        query: "鹹酥雞",
-        image: "https://picsum.photos/id/431/600/400"
+    function playSelectSound() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+       
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1);
+       
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+       
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+       
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.1);
+      } catch (e) {
+        // Ignored
       }
-    ];
-
-    // 抽籤邏輯與動畫觸發
-    function startDraw() {
-      const title = document.getElementById("title");
-      const imageBox = document.getElementById("image-box");
-      const foodImg = document.getElementById("food-img");
-      const mapBtn = document.getElementById("map-btn");
-      const drawBtn = document.getElementById("draw-btn");
-
-      // 隨機抽取項目
-      const randomIndex = Math.floor(Math.random() * foods.length);
-      const selected = foods[randomIndex];
-
-      // 更新文字與圖片內容
-      title.innerText = "今天就吃：" + selected.name;
-      foodImg.src = selected.image;
-      mapBtn.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(selected.query);
-
-      // 顯示圖片與導航按鈕
-      imageBox.classList.remove("hidden");
-      mapBtn.classList.remove("hidden");
-
-      // 重置並觸發彈跳動畫
-      title.classList.remove("bounce");
-      imageBox.classList.remove("bounce");
-     
-      void title.offsetWidth; // 觸發 DOM 重繪
-
-      title.classList.add("bounce");
-      imageBox.classList.add("bounce");
-
-      // 變更按鈕文字
-      drawBtn.innerText = "再抽一次 🔄";
     }
   </script>
 </body>
