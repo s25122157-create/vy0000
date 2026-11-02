@@ -1,268 +1,190 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>朋友對我的動態留言板</title>
+  <title>今天吃什麼？隨機抽籤機</title>
   <style>
-    /* ==========================================
-       1. 全局變數定義 (方便快速修改顏色與樣式)
-       ========================================== */
-    :root {
-      /* 【顏色修改區】 */
-      --bg-color: #0b0f19;              /* 背景深色底色 */
-      --card-bg: rgba(23, 32, 54, 0.7);  /* 卡片預設背景 (半透明玻璃質感) */
-      --card-border: rgba(255, 255, 255, 0.1); /* 卡片預設邊框顏色 */
-      --text-main: #f0f4f8;            /* 主要文字顏色 */
-      --text-muted: #94a3b8;           /* 名字/次要文字顏色 */
-      
-      /* 【卡片高亮 (Highlight) 顏色設定】 */
-      --highlight-border: #00f2fe;     /* 高亮時邊框顏色 (霓虹青) */
-      --highlight-shadow: rgba(0, 242, 254, 0.6); /* 高亮發光光暈顏色 */
-      --highlight-bg: rgba(15, 23, 42, 0.95);     /* 高亮時卡片背景 */
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
+    /* 1. 全局樣式設定：活潑黃橘色漸層 */
     body {
-      background-color: var(--bg-color);
-      color: var(--text-main);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
       min-height: 100vh;
-      padding: 2rem 1rem;
-      /* 動態漸層背景 */
-      background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, var(--bg-color) 70%);
-      background-attachment: fixed;
+      background: linear-gradient(135deg, #FFB703, #FB8500);
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-sizing: border-box;
     }
 
-    /* 頁面標題 */
-    header {
+    /* 2. 主卡片容器 */
+    .card {
+      background: #FFFFFF;
+      padding: 30px 20px;
+      border-radius: 20px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
       text-align: center;
-      margin-bottom: 2rem;
+      max-width: 380px;
+      width: 100%;
     }
 
-    header h1 {
-      font-size: 2.2rem;
-      letter-spacing: 2px;
-      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 0.5rem;
+    /* 3. 標題樣式 */
+    h1 {
+      color: #D00000;
+      font-size: 26px;
+      margin-top: 0;
+      margin-bottom: 15px;
     }
 
-    header p {
-      color: var(--text-muted);
-      font-size: 0.95rem;
+    /* 4. 圖片顯示區域 */
+    #image-box {
+      margin: 15px 0;
+      border-radius: 12px;
+      overflow: hidden;
     }
 
-    /* ==========================================
-       2. 載入中酷炫動畫 (Loading Spinner)
-       ========================================== */
-    #loading {
+    #food-img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* 5. 按鈕樣式與動畫效果 */
+    .button-group {
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 300px;
+      gap: 10px;
     }
 
-    /* 雙環炫光旋轉動畫 */
-    .spinner {
-      width: 60px;
-      height: 60px;
-      border: 4px solid rgba(0, 242, 254, 0.1);
-      border-left-color: var(--highlight-border);
-      border-right-color: #4facfe;
-      border-radius: 50%;
-      animation: spin 1s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
-      box-shadow: 0 0 15px var(--highlight-shadow);
-      margin-bottom: 1.5rem;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .loading-text {
-      color: var(--highlight-border);
-      font-size: 1.1rem;
-      letter-spacing: 3px;
-      animation: pulse 1.5s ease-in-out infinite alternate;
-    }
-
-    @keyframes pulse {
-      0% { opacity: 0.4; }
-      100% { opacity: 1; }
-    }
-
-    /* ==========================================
-       3. 瀑布流排版 (Masonry Layout)
-       ========================================== */
-    .masonry-wall {
-      width: 100%;
-      max-width: 1200px;
-      margin: 0 auto;
-      
-      /* 關鍵：使用 CSS Column 實作瀑布流 */
-      column-count: 4;     /* 電腦版預設 4 欄 */
-      column-gap: 1.5rem;  /* 卡片之間的左右間距 */
-      
-      display: none;       /* 預設隱藏，資料載入完成後顯示 */
-    }
-
-    /* 響應式斷點 (RWD) 調整欄數 */
-    @media (max-width: 1024px) {
-      .masonry-wall { column-count: 3; }
-    }
-    @media (max-width: 768px) {
-      .masonry-wall { column-count: 2; }
-    }
-    @media (max-width: 480px) {
-      .masonry-wall { column-count: 1; }
-    }
-
-    /* ==========================================
-       4. 留言卡片基礎與高亮特效樣式
-       ========================================== */
-    .card {
-      /* 關鍵：防止卡片被 Column 切斷分頁 */
-      break-inside: avoid;
-      margin-bottom: 1.5rem;
-      
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      backdrop-filter: blur(8px);
-      border-radius: 16px;
-      padding: 1.25rem;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-      
-      /* 動態平滑過渡 (重點：視覺滑順感) */
-      transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
-      position: relative;
-      cursor: pointer;
-    }
-
-    .card-header {
-      display: flex;
-      align-items: center;
-      margin-bottom: 0.75rem;
-    }
-
-    .avatar-placeholder {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    button, a {
+      display: block;
+      padding: 12px 20px;
+      font-size: 18px;
       font-weight: bold;
-      font-size: 0.9rem;
-      color: #fff;
-      margin-right: 0.75rem;
-      flex-shrink: 0;
+      border-radius: 25px;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      box-sizing: border-box;
+      transition: transform 0.1s ease;
     }
 
-    .card-author {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      transition: color 0.6s ease;
+    button:active, a:active {
+      transform: scale(0.95);
     }
 
-    .card-content {
-      font-size: 0.95rem;
-      line-height: 1.6;
-      word-break: break-word;
-      white-space: pre-wrap; /* 保留留言中的換行符號 */
+    /* 點我抽籤按鈕 */
+    #draw-btn {
+      background-color: #FFB703;
+      color: #000;
     }
 
-    /* ---【重點：輪播被選中時的高亮 (Highlight) 效果】--- */
-    .card.highlight {
-      transform: scale(1.08); /* 放大卡片 */
-      z-index: 10;           /* 提升層級避免被鄰近卡片遮擋 */
-      background: var(--highlight-bg);
-      border-color: var(--highlight-border);
-      /* 強烈的 Neon Glow 霓虹發光特效 */
-      box-shadow: 0 0 25px var(--highlight-shadow), 
-                  0 10px 30px rgba(0, 0, 0, 0.5);
+    /* 馬上出發按鈕 */
+    #map-btn {
+      background-color: #023047;
+      color: #FFF;
     }
 
-    .card.highlight .card-author {
-      color: var(--highlight-border); /* 名字著色 */
+    /* 6. 生動彈跳動畫 (Bounce) */
+    .bounce {
+      animation: pop 0.4s ease-in-out;
     }
 
-    /* ---【重點：未被選中卡片的暗化與模糊效果】--- */
-    .masonry-wall.has-highlight .card:not(.highlight) {
-      opacity: 0.35;        /* 降溫透明度 */
-      filter: blur(1.5px);  /* 輕微模糊 */
-      transform: scale(0.96); /* 微微縮小 */
+    @keyframes pop {
+      0% { transform: scale(0.5); opacity: 0; }
+      70% { transform: scale(1.1); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* 隱藏元素 */
+    .hidden {
+      display: none !important;
     }
   </style>
 </head>
 <body>
 
-  <header>
-    <h1>動態留言板</h1>
-    <p>溫馨、熱烈與真心話展覽空間</p>
-  </header>
+  <div class="card">
+    <!-- 大標題 -->
+    <h1 id="title">今天吃什麼？🍴</h1>
 
-  <!-- 載入中酷炫動畫 -->
-  <div id="loading">
-    <div class="spinner"></div>
-    <div class="loading-text">讀取留言中...</div>
+    <!-- 食物照片區塊 -->
+    <div id="image-box" class="hidden">
+      <img id="food-img" src="" alt="Food Picture">
+    </div>
+
+    <!-- 功能按鈕區塊 -->
+    <div class="button-group">
+      <button id="draw-btn" onclick="startDraw()">點我抽籤 🎲</button>
+      <a id="map-btn" class="hidden" href="#" target="_blank" rel="noopener noreferrer">馬上出發 🚗</a>
+    </div>
   </div>
 
-  <!-- 留言牆容器 -->
-  <div id="wall" class="masonry-wall"></div>
-
   <script>
-    // ==========================================
-    // 參數設定區 (請在下方替換你的網址與秒數)
-    // ==========================================
-    
-    // 1. 請將下方字串替換成你複製的 Google 試算表 CSV 發佈網址
-    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ.../pub?output=csv';
-    
-    // 2. 【輪播秒數修改】設定高亮切換的間隔時間 (單位：毫秒，3000ms = 3秒)
-    const CAROUSEL_INTERVAL_MS = 3000; 
+    // 5 個餐廳選項與圖片網址
+    const foods = [
+      {
+        name: "越南店 🍜",
+        query: "越南料理",
+        image: "https://picsum.photos/id/1080/600/400"
+      },
+      {
+        name: "鴨肉飯 🦆",
+        query: "鴨肉飯",
+        image: "https://picsum.photos/id/225/600/400"
+      },
+      {
+        name: "深水食堂 🍲",
+        query: "深水食堂",
+        image: "https://picsum.photos/id/292/600/400"
+      },
+      {
+        name: "麥當勞 🍔",
+        query: "麥當勞",
+        image: "https://picsum.photos/id/1060/600/400"
+      },
+      {
+        name: "鹹酥雞 🍗",
+        query: "鹹酥雞",
+        image: "https://picsum.photos/id/431/600/400"
+      }
+    ];
 
-    // 全局狀態變數
-    let messages = [];      // 儲存解析後的留言資料
-    let currentIndex = -1;  // 目前高亮的卡片索引
-    let timerId = null;     // 定時器 ID
+    // 抽籤邏輯與動畫觸發
+    function startDraw() {
+      const title = document.getElementById("title");
+      const imageBox = document.getElementById("image-box");
+      const foodImg = document.getElementById("food-img");
+      const mapBtn = document.getElementById("map-btn");
+      const drawBtn = document.getElementById("draw-btn");
 
-    // ==========================================
-    // CSV 解析邏輯 (妥善處理內容包含逗號、換行與雙引號的情境)
-    // ==========================================
-    function parseCSV(text) {
-      const result = [];
-      let row = [];
-      let field = '';
-      let inQuotes = false;
+      // 隨機抽取項目
+      const randomIndex = Math.floor(Math.random() * foods.length);
+      const selected = foods[randomIndex];
 
-      for (let i = 0; i < text.length; i++) {
-        const c = text[i];
-        const nextC = text[i + 1];
+      // 更新文字與圖片內容
+      title.innerText = "今天就吃：" + selected.name;
+      foodImg.src = selected.image;
+      mapBtn.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(selected.query);
 
-        if (inQuotes) {
-          if (c === '"' && nextC === '"') {
-            field += '"';
-            i++;
-          } else if (c === '"') {
-            inQuotes = false;
-          } else {
-            field += c;
-          }
-        } else {
-          if (c === '"') {
-            inQuotes = true;
-          } else if (c === ',') {
-            row.push(field.trim());
-            field = '';
-          } else if (c === '\r' || c === '\n') {
+      // 顯示圖片與導航按鈕
+      imageBox.classList.remove("hidden");
+      mapBtn.classList.remove("hidden");
+
+      // 重置並觸發彈跳動畫
+      title.classList.remove("bounce");
+      imageBox.classList.remove("bounce");
+     
+      void title.offsetWidth; // 觸發 DOM 重繪
+
+      title.classList.add("bounce");
+      imageBox.classList.add("bounce");
+
+      // 變更按鈕文字
+      drawBtn.innerText = "再抽一次 🔄";
+    }
+  </script>
+</body>
+</html>
