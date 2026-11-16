@@ -1,26 +1,28 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="vi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>雲端心電感應 (多人默契遊戲)</title>
-  <!-- Tailwind CSS CDN -->
+  <title>Thần Giao Cách Cảm - Cloud Telepathy</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
       theme: {
         extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
           colors: {
-            // 莫蘭迪色系配置 (Morandi Palette)
             morandi: {
-              bg: '#F4F1EA',       // 米灰底色
-              card: '#E8E5DE',     // 淺灰卡片
-              primary: '#7E8D85',  // 霧綠色
-              secondary: '#B3C2C8',// 灰藍色
-              accent: '#C5A059',   // 暖金/大地色
-              dark: '#5A6265',     // 深灰色文字
-              muted: '#A3B18A',    // 鼠尾草綠
-              rose: '#D6A2AD'      // 柔粉色
+              canvas: '#F7F6F3',    // Nền giấy Notion
+              surface: '#FFFFFF',   // Nền thẻ trắng
+              stone: '#EBE9E4',     // Xám đá nhạt
+              sage: '#849689',      // Xanh xô thơm (Chính)
+              sageDark: '#67786C',  // Xanh xô thơm đậm
+              slate: '#96A5B0',     // Xanh xám đá
+              clay: '#C89F91',      // Đất nung nhạt
+              sand: '#D4B98C',      // Cát vàng ấm
+              ink: '#37352F',       // Màu chữ Notion
+              sub: '#787774'        // Màu chữ phụ Notion
             }
           }
         }
@@ -29,343 +31,442 @@
   </script>
   <style>
     body {
-      background-color: #F4F1EA;
-      color: #4A5568;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: #F7F6F3;
+      color: #37352F;
     }
-    
-    /* 3D 翻牌效果特有 CSS */
-    .perspective-1000 {
+
+    /* 3D Card Flip Animation */
+    .scene {
       perspective: 1000px;
     }
-    .transform-style-3d {
+    .card-object {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transition: transform 0.75s cubic-bezier(0.34, 1.56, 0.64, 1);
       transform-style: preserve-3d;
     }
-    .backface-hidden {
+    .card-object.is-flipped {
+      transform: rotateY(180deg);
+    }
+    .card-face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
+      border-radius: 0.75rem;
     }
-    .rotate-y-180 {
+    .card-face-back {
       transform: rotateY(180deg);
     }
-    .card-inner {
-      transition: transform 0.8s cubic-bezier(0.4, 0.2, 0.2, 1);
-    }
-    .card-flipped {
-      transform: rotateY(180deg);
-    }
+
+    /* Subtle Notion-like scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #D3D1CB; border-radius: 3px; }
   </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between p-4 md:p-8">
+<body class="min-h-screen flex flex-col justify-between antialiased selection:bg-morandi-sage/20">
 
-  <!-- 頂部 Header & Notion 極簡風標題 -->
-  <header class="max-w-4xl mx-auto w-full flex justify-between items-center mb-8 border-b border-morandi-secondary/30 pb-4">
-    <div class="flex items-center space-x-3">
-      <span class="text-3xl">🧠</span>
-      <div>
-        <h1 class="text-2xl font-bold tracking-tight text-morandi-dark">雲端心電感應</h1>
-        <p class="text-xs text-gray-500">Telepathy Game · 莫蘭迪簡約版</p>
+  <!-- Toast Notification (Thay cho alert truyền thống) -->
+  <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 opacity-0 pointer-events-none translate-y-[-10px]">
+    <div id="toastMsg" class="bg-morandi-ink text-white text-sm px-4 py-2.5 rounded-lg shadow-lg font-medium flex items-center gap-2">
+      <span>✨</span> <span id="toastText">Thông báo</span>
+    </div>
+  </div>
+
+  <!-- Top Navigation Bar -->
+  <nav class="border-b border-morandi-stone bg-morandi-surface/80 backdrop-blur-md sticky top-0 z-30">
+    <div class="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-morandi-sage text-white flex items-center justify-center font-bold shadow-sm">
+          🔮
+        </div>
+        <span class="font-semibold text-morandi-ink tracking-tight">Cloud Telepathy</span>
+        <span class="hidden sm:inline-block text-xs px-2 py-0.5 rounded bg-morandi-stone text-morandi-sub">v2.0</span>
       </div>
-    </div>
 
-    <!-- 房間與個人資訊標籤 -->
-    <div id="roomInfoTag" class="hidden flex items-center space-x-2 text-sm">
-      <span class="bg-morandi-card px-3 py-1 rounded-md text-morandi-dark border border-gray-300 shadow-sm">
-        房號：<strong id="displayRoomId" class="text-morandi-accent">--</strong>
-      </span>
-      <span class="bg-morandi-card px-3 py-1 rounded-md text-morandi-dark border border-gray-300 shadow-sm">
-        玩家：<strong id="displayName" class="text-morandi-primary">--</strong>
-      </span>
-    </div>
-  </header>
-
-  <!-- 主內容區域 -->
-  <main class="max-w-4xl mx-auto w-full flex-1 flex flex-col justify-center">
-
-    <!-- 階段一：登入/建立房間 (Setup View) -->
-    <div id="viewLogin" class="bg-white/80 backdrop-blur border border-morandi-secondary/40 rounded-xl p-6 md:p-8 shadow-sm max-w-md mx-auto w-full">
-      <h2 class="text-xl font-bold mb-4 text-morandi-dark flex items-center gap-2">
-        <span>🚪</span> 進入或建立房間
-      </h2>
-      <div class="space-y-4">
-        <div>
-          <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">您的暱稱</label>
-          <input type="text" id="inputName" placeholder="例如：小明" class="w-full px-4 py-2 border border-morandi-secondary/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-morandi-primary bg-morandi-bg/30">
+      <!-- Thông tin phòng khi đã đăng nhập -->
+      <div id="navRoomBadge" class="hidden flex items-center gap-2 text-xs sm:text-sm">
+        <button onclick="copyRoomCode()" title="Bấm để sao chép mã phòng" class="flex items-center gap-1.5 bg-morandi-stone/70 hover:bg-morandi-stone px-3 py-1.5 rounded-md transition text-morandi-ink font-medium">
+          <span>🔑 Phòng:</span>
+          <span id="navRoomId" class="font-bold text-morandi-sageDark">----</span>
+        </button>
+        <div class="bg-morandi-stone/70 px-3 py-1.5 rounded-md text-morandi-ink font-medium">
+          👤 <span id="navPlayerName">---</span>
         </div>
-        <div>
-          <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">房間代碼 (Room ID)</label>
-          <input type="text" id="inputRoom" placeholder="例如：101 或 party" class="w-full px-4 py-2 border border-morandi-secondary/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-morandi-primary bg-morandi-bg/30">
-        </div>
-        <button onclick="joinGame()" class="w-full py-3 bg-morandi-primary hover:bg-morandi-dark text-white rounded-lg font-medium transition duration-200 shadow-sm">
-          進入房間
+        <button onclick="leaveRoom()" class="text-morandi-sub hover:text-morandi-clay px-2 py-1 text-xs underline">
+          Thoát
         </button>
       </div>
     </div>
+  </nav>
 
-    <!-- 階段二：遊戲大廳/回答區 (Game Play View) -->
-    <div id="viewGame" class="hidden space-y-6">
+  <!-- Main Workspace -->
+  <main class="max-w-5xl mx-auto w-full flex-1 px-4 py-8 flex flex-col justify-center">
 
-      <!-- 題目顯示區 -->
-      <div class="bg-white/80 border border-morandi-secondary/40 rounded-xl p-6 text-center shadow-sm">
-        <span class="text-xs uppercase tracking-widest text-morandi-accent font-bold">Current Question</span>
-        <h2 id="questionTitle" class="text-2xl md:text-3xl font-bold text-morandi-dark mt-2">
-          等待房主出題中...
+    <!-- MÀN HÌNH 1: ĐĂNG NHẬP & CHIA PHÒNG -->
+    <section id="loginScreen" class="max-w-md mx-auto w-full">
+      <div class="bg-morandi-surface border border-morandi-stone rounded-2xl p-6 sm:p-8 shadow-sm">
+        <div class="mb-6">
+          <h1 class="text-2xl font-bold text-morandi-ink mb-1">Thần Giao Cách Cảm</h1>
+          <p class="text-sm text-morandi-sub">Nhập tên của bạn và mã phòng để bắt đầu kiểm tra độ ăn ý cùng nhóm.</p>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-morandi-sub uppercase tracking-wider mb-1.5">Tên hiển thị của bạn</label>
+            <input type="text" id="playerNameInput" maxlength="15" placeholder="Ví dụ: Minh Anh" 
+              class="w-full px-3.5 py-2.5 bg-morandi-canvas border border-morandi-stone rounded-xl text-sm focus:outline-none focus:border-morandi-sage focus:bg-white transition">
+          </div>
+
+          <div>
+            <div class="flex justify-between items-center mb-1.5">
+              <label class="block text-xs font-semibold text-morandi-sub uppercase tracking-wider">Mã phòng (Room ID)</label>
+              <button type="button" onclick="generateRandomRoom()" class="text-xs text-morandi-sageDark hover:underline font-medium flex items-center gap-1">
+                🎲 Tạo mã phòng mới
+              </button>
+            </div>
+            <input type="text" id="roomCodeInput" maxlength="12" placeholder="Nhập mã phòng (VD: 8824)" 
+              class="w-full px-3.5 py-2.5 bg-morandi-canvas border border-morandi-stone rounded-xl text-sm font-mono uppercase focus:outline-none focus:border-morandi-sage focus:bg-white transition">
+          </div>
+
+          <button onclick="enterRoom()" class="w-full mt-2 py-3 bg-morandi-sage hover:bg-morandi-sageDark text-white font-medium rounded-xl text-sm transition shadow-sm active:scale-[0.99]">
+            Tham gia phòng chơi →
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- MÀN HÌNH 2: PHÒNG CHƠI CHÍNH -->
+    <section id="gameScreen" class="hidden space-y-6">
+      
+      <!-- Khung Câu Hỏi (Notion Callout Style) -->
+      <div class="bg-morandi-surface border border-morandi-stone rounded-2xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
+        <div class="flex items-center justify-between mb-3">
+          <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-md bg-morandi-canvas text-morandi-sub border border-morandi-stone">
+            <span id="statusDot" class="w-2 h-2 rounded-full bg-morandi-sand animate-pulse"></span>
+            <span id="statusLabel">Đang chờ câu hỏi</span>
+          </span>
+          <span class="text-xs text-morandi-sub">Đồng bộ tự động</span>
+        </div>
+        
+        <h2 id="currentQuestionDisplay" class="text-xl sm:text-3xl font-bold text-morandi-ink leading-snug">
+          Chủ phòng đang chuẩn bị câu hỏi...
         </h2>
       </div>
 
-      <!-- 玩家填答區 -->
-      <div id="answerSection" class="bg-white/80 border border-morandi-secondary/40 rounded-xl p-6 shadow-sm max-w-lg mx-auto w-full">
-        <div class="flex gap-2">
-          <input type="text" id="inputAnswer" placeholder="請輸入你的默契答案..." class="flex-1 px-4 py-2 border border-morandi-secondary/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-morandi-primary bg-morandi-bg/30">
-          <button onclick="submitAnswer()" class="px-6 py-2 bg-morandi-muted hover:bg-morandi-primary text-white rounded-lg font-medium transition duration-200">
-            送出答案
+      <!-- Khung Nhập Đáp Án -->
+      <div class="bg-morandi-surface border border-morandi-stone rounded-2xl p-4 sm:p-5 shadow-sm max-w-xl mx-auto w-full">
+        <form onsubmit="handleAnswerSubmit(event)" class="flex flex-col sm:flex-row gap-2.5">
+          <input type="text" id="answerInput" maxlength="40" placeholder="Nhập suy nghĩ đầu tiên của bạn..." 
+            class="flex-1 px-4 py-2.5 bg-morandi-canvas border border-morandi-stone rounded-xl text-sm focus:outline-none focus:border-morandi-sage focus:bg-white transition">
+          <button type="submit" id="submitBtn" class="px-6 py-2.5 bg-morandi-ink hover:bg-morandi-sageDark text-white text-sm font-medium rounded-xl transition whitespace-nowrap">
+            Chốt đáp án
           </button>
+        </form>
+        <div id="submittedFeedback" class="hidden mt-2.5 text-xs text-morandi-sageDark font-medium flex items-center justify-between bg-morandi-sage/10 px-3 py-1.5 rounded-lg">
+          <span>✓ Đáp án của bạn: <strong id="mySavedAnswer"></strong></span>
+          <span class="text-morandi-sub">(Có thể gửi lại để đổi)</span>
         </div>
-        <p id="myAnswerStatus" class="text-xs text-gray-400 mt-2 text-center"></p>
       </div>
 
-      <!-- 卡片牆：3D 翻牌顯示區 -->
-      <div>
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-bold text-morandi-dark flex items-center gap-2">
-            <span>🎴</span> 全員答案牆 <span id="playerCount" class="text-xs font-normal text-gray-500">(0 人已作答)</span>
+      <!-- Khu Vực Thẻ Bài 3D -->
+      <div class="pt-2">
+        <div class="flex items-center justify-between mb-4 px-1">
+          <h3 class="text-sm font-semibold text-morandi-sub uppercase tracking-wider">
+            Danh sách thẻ bài (<span id="totalPlayers">0</span> người đã trả lời)
           </h3>
-          <span id="revealStatusText" class="text-xs px-2.5 py-1 rounded bg-morandi-card text-morandi-dark font-medium">蓋牌中...</span>
+          <span id="flipBadge" class="text-xs font-medium px-2.5 py-1 rounded-full bg-morandi-stone text-morandi-ink">
+            Đang úp bài
+          </span>
         </div>
-        <div id="cardsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          <!-- 3D 動態卡片將透過 JS 動態注入 -->
+
+        <!-- Lưới hiển thị thẻ -->
+        <div id="cardsContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          <!-- Thẻ bài sẽ được render tại đây -->
         </div>
       </div>
-    </div>
+
+    </section>
   </main>
 
-  <!-- 隱藏房主按鈕與房主控制台 modal -->
-  <footer class="mt-8 text-center relative">
-    <p class="text-xs text-gray-400">© Cloud Telepathy Game · Notion Style Morandi</p>
+  <!-- Footer & Nút Mở Bảng Điều Khiển Chủ Phòng Ẩn -->
+  <footer class="max-w-5xl mx-auto w-full px-4 py-6 flex items-center justify-between text-xs text-morandi-sub">
+    <span>Notion Minimalist × Morandi Palette</span>
     
-    <!-- 隱藏房主按鈕 (微小極簡) -->
-    <button onclick="toggleHostPanel()" class="opacity-20 hover:opacity-100 transition-opacity absolute right-0 bottom-0 text-xs bg-morandi-card px-2 py-1 rounded border border-gray-300 text-gray-600">
-      ⚙️ 房主控制台
+    <!-- Nút ẩn tinh tế ở góc phải dưới -->
+    <button onclick="openHostModal()" class="opacity-25 hover:opacity-100 focus:opacity-100 transition-opacity px-2.5 py-1 rounded border border-transparent hover:border-morandi-stone hover:bg-morandi-surface flex items-center gap-1">
+      <span>⚙️</span> <span>Host</span>
     </button>
   </footer>
 
-  <!-- 房主控制面板 (Modal) -->
-  <div id="hostModal" class="hidden fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-    <div class="bg-white border border-morandi-secondary/50 rounded-xl p-6 max-w-md w-full shadow-lg space-y-4">
-      <div class="flex justify-between items-center border-b border-gray-100 pb-2">
-        <h3 class="font-bold text-morandi-dark flex items-center gap-2">👑 房主專屬控制台</h3>
-        <button onclick="toggleHostPanel()" class="text-gray-400 hover:text-gray-600">✕</button>
+  <!-- MODAL: BẢNG ĐIỀU KHIỂN CHỦ PHÒNG (HIDDEN HOST CONSOLE) -->
+  <div id="hostConsoleModal" class="hidden fixed inset-0 z-50 bg-morandi-ink/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-morandi-surface border border-morandi-stone rounded-2xl max-w-md w-full p-6 shadow-xl space-y-5 animate-[fadeIn_0.2s_ease-out]">
+      <div class="flex items-center justify-between border-b border-morandi-stone pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">👑</span>
+          <h3 class="font-bold text-morandi-ink">Bảng Điều Khiển Chủ Phòng</h3>
+        </div>
+        <button onclick="closeHostModal()" class="w-7 h-7 rounded-lg hover:bg-morandi-stone flex items-center justify-center text-morandi-sub">✕</button>
       </div>
 
-      <!-- 房主出題區 -->
+      <!-- Phần 1: Ra đề bài -->
       <div class="space-y-2">
-        <label class="block text-xs font-semibold text-gray-500">出新題目 (將清空上一輪答案)</label>
-        <div class="flex gap-2">
-          <input type="text" id="hostQuestionInput" placeholder="例如：提到夏天會想到什麼？" class="flex-1 px-3 py-2 border rounded-lg text-sm bg-morandi-bg/20">
-          <button onclick="hostSetQuestion()" class="px-4 py-2 bg-morandi-primary text-white text-sm rounded-lg hover:bg-morandi-dark">
-            發布題目
+        <label class="block text-xs font-semibold text-morandi-sub uppercase">1. Đặt câu hỏi mới (Xóa đáp án cũ)</label>
+        <input type="text" id="newQuestionInput" placeholder="VD: Món ăn sáng kinh điển nhất?" 
+          class="w-full px-3.5 py-2.5 bg-morandi-canvas border border-morandi-stone rounded-xl text-sm focus:outline-none focus:border-morandi-sage">
+        <button onclick="hostPublishQuestion()" class="w-full py-2.5 bg-morandi-sage hover:bg-morandi-sageDark text-white text-sm font-medium rounded-xl transition">
+          📢 Phát câu hỏi tới cả phòng
+        </button>
+      </div>
+
+      <!-- Phần 2: Thao tác lật bài & Reset -->
+      <div class="space-y-2 pt-2 border-t border-morandi-stone">
+        <label class="block text-xs font-semibold text-morandi-sub uppercase">2. Điều khiển ván chơi</label>
+        <div class="grid grid-cols-2 gap-2.5">
+          <button onclick="hostTriggerReveal()" class="py-2.5 px-3 bg-morandi-sand hover:brightness-95 text-morandi-ink font-semibold text-sm rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs">
+            <span>🃏</span> Lật bài (3D)
+          </button>
+          <button onclick="hostTriggerReset()" class="py-2.5 px-3 bg-morandi-clay hover:brightness-95 text-white font-medium text-sm rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs">
+            <span>🔄</span> Làm mới phòng
           </button>
         </div>
-      </div>
-
-      <hr class="border-gray-100">
-
-      <!-- 控制按鈕 -->
-      <div class="grid grid-cols-2 gap-2">
-        <button onclick="hostRevealCards()" class="py-2.5 bg-morandi-accent text-white rounded-lg text-sm font-medium hover:opacity-90 transition shadow-sm">
-          🃏 全網頁同步翻牌 (開牌)
-        </button>
-        <button onclick="hostResetGame()" class="py-2.5 bg-morandi-rose text-white rounded-lg text-sm font-medium hover:opacity-90 transition shadow-sm">
-          🔄 重置房間狀態
-        </button>
       </div>
     </div>
   </div>
 
-  <!-- JavaScript 邏輯 -->
   <script>
-    // 專案設定
+    // Cấu hình API Google Apps Script
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbw3rlwUNisJem-iHhsVJ5GEeWkuRrVcHMcgMqucbVaoBRSXCFN2L_OGiDIo7bo8DP3VkA/exec";
-    
-    // 全域變數
-    let currentRoom = "";
-    let currentName = "";
-    let pollingInterval = null;
-    let localGameState = { status: "", question: "", answers: {} };
 
-    // 1. 登入/加入房間
-    function joinGame() {
-      const name = document.getElementById('inputName').value.trim();
-      const room = document.getElementById('inputRoom').value.trim();
+    // Biến trạng thái ứng dụng
+    let state = {
+      room: "",
+      player: "",
+      timer: null,
+      lastDataSnapshot: ""
+    };
 
-      if (!name || !room) {
-        alert("請輸入暱稱與房間代碼！");
-        return;
-      }
-
-      currentName = name;
-      currentRoom = room;
-
-      document.getElementById('displayRoomId').innerText = currentRoom;
-      document.getElementById('displayName').innerText = currentName;
-
-      // 切換 View
-      document.getElementById('viewLogin').classList.add('hidden');
-      document.getElementById('viewGame').classList.remove('hidden');
-      document.getElementById('roomInfoTag').classList.remove('hidden');
-
-      // 開始啟動 Polling 機制 (每 2 秒輪詢一次)
-      fetchGameState();
-      pollingInterval = setInterval(fetchGameState, 2000);
+    // Hiển thị thông báo nhỏ (Toast)
+    function showToast(text) {
+      const toast = document.getElementById("toast");
+      document.getElementById("toastText").innerText = text;
+      toast.classList.remove("opacity-0", "translate-y-[-10px]");
+      setTimeout(() => {
+        toast.classList.add("opacity-0", "translate-y-[-10px]");
+      }, 2500);
     }
 
-    // 2. GET API: 獲取遊戲狀態 (Polling)
-    async function fetchGameState() {
-      if (!currentRoom) return;
+    // Tạo mã phòng ngẫu nhiên 4 chữ số
+    function generateRandomRoom() {
+      const randomCode = Math.floor(1000 + Math.random() * 9000);
+      document.getElementById("roomCodeInput").value = randomCode;
+      showToast(`Đã tạo mã phòng: ${randomCode}`);
+    }
 
+    // Sao chép mã phòng
+    function copyRoomCode() {
+      navigator.clipboard.writeText(state.room);
+      showToast(`Đã sao chép mã phòng: ${state.room}`);
+    }
+
+    // Tham gia phòng
+    function enterRoom() {
+      const nameVal = document.getElementById("playerNameInput").value.trim();
+      const roomVal = document.getElementById("roomCodeInput").value.trim().toUpperCase();
+
+      if (!nameVal) return showToast("Vui lòng nhập tên của bạn!");
+      if (!roomVal) return showToast("Vui lòng nhập hoặc tạo mã phòng!");
+
+      state.player = nameVal;
+      state.room = roomVal;
+      state.lastDataSnapshot = "";
+
+      // Cập nhật giao diện Header & Chuyển màn hình
+      document.getElementById("navRoomId").innerText = state.room;
+      document.getElementById("navPlayerName").innerText = state.player;
+      document.getElementById("navRoomBadge").classList.remove("hidden");
+      document.getElementById("loginScreen").classList.add("hidden");
+      document.getElementById("gameScreen").classList.remove("hidden");
+
+      showToast(`Đã vào phòng ${state.room}`);
+
+      // Bắt đầu cơ chế Polling (2 giây/lần)
+      pollRoomData();
+      if (state.timer) clearInterval(state.timer);
+      state.timer = setInterval(pollRoomData, 2000);
+    }
+
+    // Thoát phòng
+    function leaveRoom() {
+      clearInterval(state.timer);
+      state.room = "";
+      document.getElementById("navRoomBadge").classList.add("hidden");
+      document.getElementById("gameScreen").classList.add("hidden");
+      document.getElementById("loginScreen").classList.remove("hidden");
+    }
+
+    // Gọi API GET lấy trạng thái phòng
+    async function pollRoomData() {
+      if (!state.room) return;
       try {
-        const response = await fetch(`${GAS_API_URL}?room=${encodeURIComponent(currentRoom)}`);
-        const data = await response.json();
+        const res = await fetch(`${GAS_API_URL}?room=${encodeURIComponent(state.room)}`);
+        const data = await res.json();
         
-        // 更新畫面
-        updateGameUI(data);
-      } catch (err) {
-        console.error("Polling Error:", err);
+        // Chỉ render lại khi dữ liệu thay đổi để không làm gián đoạn hiệu ứng CSS 3D
+        const currentSnapshot = JSON.stringify(data);
+        if (currentSnapshot !== state.lastDataSnapshot) {
+          state.lastDataSnapshot = currentSnapshot;
+          renderGameBoard(data);
+        }
+      } catch (error) {
+        console.error("Lỗi đồng bộ:", error);
       }
     }
 
-    // 3. POST API: 傳送動作給 GAS
-    async function sendAction(actionData) {
+    // Gọi API POST thực hiện hành động
+    async function postGameAction(payload) {
       try {
         await fetch(GAS_API_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({ room: currentRoom, ...actionData })
+          body: JSON.stringify({ room: state.room, ...payload })
         });
-        // 立即輪詢一次更新畫面
-        fetchGameState();
-      } catch (err) {
-        console.error("Action Error:", err);
+        await pollRoomData();
+      } catch (error) {
+        showToast("Lỗi kết nối máy chủ!");
       }
     }
 
-    // 4. 更新前端 UI 與卡片 (核心 3D 翻牌處理)
-    function updateGameUI(data) {
-      localGameState = data;
-
-      // 更新題目
-      const qTitle = document.getElementById('questionTitle');
-      qTitle.innerText = data.question || "等待房主出題中...";
-
-      // 更新狀態標籤
-      const statusText = document.getElementById('revealStatusText');
-      if (data.status === 'revealed') {
-        statusText.innerText = "🎉 已開牌！";
-        statusText.className = "text-xs px-2.5 py-1 rounded bg-morandi-accent text-white font-medium";
-      } else {
-        statusText.innerText = "🔒 蓋牌中...";
-        statusText.className = "text-xs px-2.5 py-1 rounded bg-morandi-card text-morandi-dark font-medium";
-      }
-
-      // 更新答案牆
+    // Cập nhật giao diện bàn chơi
+    function renderGameBoard(data) {
+      const isRevealed = data.status === "revealed";
+      const isPlaying = data.status === "playing";
       const answers = data.answers || {};
-      const players = Object.keys(answers);
-      document.getElementById('playerCount').innerText = `(${players.length} 人已作答)`;
 
-      // 更新個人作答狀態提示
-      const myStatus = document.getElementById('myAnswerStatus');
-      if (answers[currentName]) {
-        myStatus.innerText = `已送出您的答案：「${answers[currentName]}」`;
+      // 1. Cập nhật câu hỏi & Trạng thái
+      const qDisplay = document.getElementById("currentQuestionDisplay");
+      const statusLabel = document.getElementById("statusLabel");
+      const statusDot = document.getElementById("statusDot");
+      const flipBadge = document.getElementById("flipBadge");
+
+      qDisplay.innerText = data.question ? data.question : "Chủ phòng đang chuẩn bị câu hỏi...";
+
+      if (isRevealed) {
+        statusLabel.innerText = "Đã mở đáp án";
+        statusDot.className = "w-2 h-2 rounded-full bg-morandi-sage";
+        flipBadge.innerText = "✨ Đã lật bài";
+        flipBadge.className = "text-xs font-semibold px-3 py-1 rounded-full bg-morandi-sand text-morandi-ink";
+      } else if (isPlaying) {
+        statusLabel.innerText = "Đang trả lời";
+        statusDot.className = "w-2 h-2 rounded-full bg-morandi-clay animate-ping";
+        flipBadge.innerText = "🔒 Đang úp bài";
+        flipBadge.className = "text-xs font-medium px-3 py-1 rounded-full bg-morandi-stone text-morandi-sub";
       } else {
-        myStatus.innerText = "";
+        statusLabel.innerText = "Phòng chờ";
+        statusDot.className = "w-2 h-2 rounded-full bg-morandi-slate";
+        flipBadge.innerText = "Chưa bắt đầu";
       }
 
-      // 渲染卡片
-      renderCards(answers, data.status === 'revealed');
-    }
+      // 2. Hiển thị đáp án đã lưu của bản thân
+      const feedbackBox = document.getElementById("submittedFeedback");
+      if (answers[state.player]) {
+        feedbackBox.classList.remove("hidden");
+        document.getElementById("mySavedAnswer").innerText = answers[state.player];
+      } else {
+        feedbackBox.classList.add("hidden");
+      }
 
-    // 5. 渲染 3D CSS 卡片
-    function renderCards(answers, isRevealed) {
-      const grid = document.getElementById('cardsGrid');
-      grid.innerHTML = "";
-
+      // 3. Render danh sách thẻ bài 3D
       const entries = Object.entries(answers);
+      document.getElementById("totalPlayers").innerText = entries.length;
+      const container = document.getElementById("cardsContainer");
+
       if (entries.length === 0) {
-        grid.innerHTML = `<p class="col-span-full text-center text-sm text-gray-400 py-8">目前還沒有人填寫答案喔～</p>`;
+        container.innerHTML = `
+          <div class="col-span-full border border-dashed border-morandi-stone rounded-2xl py-12 text-center text-sm text-morandi-sub">
+            Chưa có thẻ bài nào được đặt xuống bàn. Hãy là người đầu tiên gửi đáp án!
+          </div>`;
         return;
       }
 
-      entries.forEach(([player, ans]) => {
-        // 卡片 DOM 結構 (3D Flip CSS)
-        const cardWrapper = document.createElement('div');
-        cardWrapper.className = "perspective-1000 h-32 w-full";
+      container.innerHTML = entries.map(([playerName, answerText]) => {
+        const isMe = playerName === state.player;
+        return `
+          <div class="scene h-36">
+            <div class="card-object ${isRevealed ? 'is-flipped' : ''}">
+              
+              <!-- MẶT ÚP (Chưa mở bài) -->
+              <div class="card-face bg-morandi-surface border ${isMe ? 'border-morandi-sage' : 'border-morandi-stone'} shadow-xs p-4 flex flex-col items-center justify-center text-center">
+                <div class="w-10 h-10 rounded-full bg-morandi-canvas flex items-center justify-center text-lg mb-2">
+                  ${isMe ? '🙋‍♂️' : '🎴'}
+                </div>
+                <p class="font-semibold text-sm text-morandi-ink truncate w-full">${playerName}</p>
+                <span class="text-[11px] text-morandi-sageDark mt-1 bg-morandi-sage/10 px-2 py-0.5 rounded">Đã sẵn sàng</span>
+              </div>
 
-        cardWrapper.innerHTML = `
-          <div class="card-inner relative w-full h-full transform-style-3d shadow-sm rounded-xl cursor-pointer ${isRevealed ? 'card-flipped' : ''}">
-            <!-- 卡片正面 (蓋牌狀態) -->
-            <div class="absolute inset-0 backface-hidden bg-morandi-card border border-morandi-secondary/30 rounded-xl flex flex-col justify-center items-center p-3 text-center">
-              <span class="text-2xl mb-1">❓</span>
-              <span class="text-sm font-semibold text-morandi-dark truncate w-full">${player}</span>
-              <span class="text-xs text-gray-400 mt-1">已完成填答</span>
-            </div>
+              <!-- MẶT NGỬA (Đã lật bài 3D) -->
+              <div class="card-face card-face-back bg-morandi-sage text-white shadow-md p-4 flex flex-col items-center justify-center text-center">
+                <span class="text-[11px] uppercase tracking-wider opacity-80 mb-1 truncate w-full">${playerName}</span>
+                <p class="font-bold text-lg leading-tight break-words w-full">${answerText}</p>
+              </div>
 
-            <!-- 卡片背面 (開牌狀態) -->
-            <div class="absolute inset-0 backface-hidden rotate-y-180 bg-white border-2 border-morandi-primary rounded-xl flex flex-col justify-center items-center p-3 text-center">
-              <span class="text-xs font-semibold text-morandi-muted mb-1">${player} 的答案</span>
-              <span class="text-lg font-bold text-morandi-dark break-words w-full">${ans}</span>
             </div>
           </div>
         `;
-        grid.appendChild(cardWrapper);
-      });
+      }).join("");
     }
 
-    // 6. 玩家動作：送出答案
-    function submitAnswer() {
-      const input = document.getElementById('inputAnswer');
-      const ans = input.value.trim();
-      if (!ans) {
-        alert("請輸入答案！");
-        return;
-      }
-      sendAction({
-        action: "submit_answer",
-        playerName: currentName,
-        answer: ans
-      });
+    // Xử lý người chơi gửi đáp án
+    function handleAnswerSubmit(e) {
+      e.preventDefault();
+      const input = document.getElementById("answerInput");
+      const val = input.value.trim();
+      if (!val) return showToast("Bạn chưa nhập đáp án!");
+
       input.value = "";
-    }
-
-    // 7. 房主功能控制
-    function toggleHostPanel() {
-      const modal = document.getElementById('hostModal');
-      modal.classList.toggle('hidden');
-    }
-
-    function hostSetQuestion() {
-      const q = document.getElementById('hostQuestionInput').value.trim();
-      if (!q) {
-        alert("請輸入題目！");
-        return;
-      }
-      sendAction({
-        action: "set_question",
-        question: q
+      showToast("Đang gửi đáp án...");
+      postGameAction({
+        action: "submit_answer",
+        playerName: state.player,
+        answer: val
       });
-      document.getElementById('hostQuestionInput').value = "";
-      toggleHostPanel();
     }
 
-    function hostRevealCards() {
-      sendAction({ action: "reveal" });
-      toggleHostPanel();
+    // Các hàm điều khiển của Chủ phòng (Host)
+    function openHostModal() {
+      if (!state.room) return showToast("Hãy vào một phòng trước khi mở bảng điều khiển!");
+      document.getElementById("hostConsoleModal").classList.remove("hidden");
     }
 
-    function hostResetGame() {
-      if (confirm("確定要重置目前房間的題目與所有答案嗎？")) {
-        sendAction({ action: "reset" });
-        toggleHostPanel();
-      }
+    function closeHostModal() {
+      document.getElementById("hostConsoleModal").classList.add("hidden");
+    }
+
+    function hostPublishQuestion() {
+      const qInput = document.getElementById("newQuestionInput");
+      const qVal = qInput.value.trim();
+      if (!qVal) return showToast("Vui lòng nhập nội dung câu hỏi!");
+
+      qInput.value = "";
+      closeHostModal();
+      showToast("Đang phát câu hỏi mới...");
+      postGameAction({ action: "set_question", question: qVal });
+    }
+
+    function hostTriggerReveal() {
+      closeHostModal();
+      showToast("Đang mở bài toàn phòng...");
+      postGameAction({ action: "reveal" });
+    }
+
+    function hostTriggerReset() {
+      closeHostModal();
+      showToast("Đang làm mới phòng...");
+      postGameAction({ action: "reset" });
     }
   </script>
 </body>
