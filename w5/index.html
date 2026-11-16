@@ -1,169 +1,97 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>雲端心電感應 - Cloud Telepathy</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Inter', 'Noto Sans TC', 'sans-serif'] },
-          colors: {
-            morandi: {
-              canvas: '#F7F6F3',    // Notion 紙張底色
-              surface: '#FFFFFF',   // 卡片白底
-              stone: '#EBE9E4',     // 淺石灰色
-              sage: '#849689',      // 鼠尾草綠（主色）
-              sageDark: '#67786C',  // 深鼠尾草綠
-              slate: '#96A5B0',     // 岩板藍灰
-              clay: '#C89F91',      // 陶土粉橘
-              sand: '#D4B98C',      // 暖沙金
-              ink: '#37352F',       // Notion 深灰文字
-              sub: '#787774'        // Notion 次要文字
-            }
-          }
+const SHEET_NAME = 'TelepathyData';
+
+// 處理前端抓取遊戲狀態 (GET)
+function doGet(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  if (!sheet) {
+    return createJsonResponse({ error: "找不到工作表: " + SHEET_NAME });
+  }
+
+  var room = (e && e.parameter && e.parameter.room) ? e.parameter.room : "default";
+  var data = sheet.getDataRange().getValues();
+  var roomData = { status: "setup", question: "", answers: {} };
+
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(room)) {
+      roomData.status = data[i][1] || "setup";
+      roomData.question = data[i][2] || "";
+      try {
+        roomData.answers = data[i][3] ? JSON.parse(data[i][3]) : {};
+      } catch (err) {
+        roomData.answers = {};
+      }
+      break;
+    }
+  }
+
+  return createJsonResponse(roomData);
+}
+
+// 處理前端更新遊戲狀態或送出答案 (POST)
+function doPost(e) {
+  // 取得腳本鎖定，防止多位玩家同時送出答案時互相覆蓋
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000); // 最多等待 10 秒
+  } catch (err) {
+    return createJsonResponse({ success: false, error: "伺服器忙碌中，請稍後再試" });
+  }
+
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+    if (!sheet) {
+      return createJsonResponse({ success: false, error: "找不到工作表: " + SHEET_NAME });
+    }
+
+    var req = JSON.parse(e.postData.contents);
+    var room = req.room || "default";
+    var data = sheet.getDataRange().getValues();
+    var rowIndex = -1;
+    var currentAnswers = {};
+
+    // 尋找房間並直接從 data 取得現有答案
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === String(room)) {
+        rowIndex = i + 1;
+        try {
+          currentAnswers = data[i][3] ? JSON.parse(data[i][3]) : {};
+        } catch (err) {
+          currentAnswers = {};
         }
+        break;
       }
     }
-  </script>
-  <style>
-    body {
-      background-color: #F7F6F3;
-      color: #37352F;
+
+    // 如果房間不存在，建立新房間
+    if (rowIndex === -1) {
+      sheet.appendRow([room, "setup", "", "{}"]);
+      rowIndex = sheet.getLastRow();
     }
 
-    /* 3D 翻牌動畫 */
-    .scene {
-      perspective: 1000px;
-    }
-    .card-object {
-      width: 100%;
-      height: 100%;
-      position: relative;
-      transition: transform 0.75s cubic-bezier(0.34, 1.56, 0.64, 1);
-      transform-style: preserve-3d;
-    }
-    .card-object.is-flipped {
-      transform: rotateY(180deg);
-    }
-    .card-face {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
-      border-radius: 0.75rem;
-    }
-    .card-face-back {
-      transform: rotateY(180deg);
+    // 根據 action 更新整列資料（減少多次 setValue 的效能損耗）
+    if (req.action === "reset") {
+      sheet.getRange(rowIndex, 2, 1, 3).setValues([["setup", "", "{}"]]);
+    } else if (req.action === "set_question") {
+      sheet.getRange(rowIndex, 2, 1, 3).setValues([["playing", req.question || "", "{}"]]);
+    } else if (req.action === "submit_answer") {
+      if (req.playerName) {
+        currentAnswers[req.playerName] = req.answer;
+        sheet.getRange(rowIndex, 4).setValue(JSON.stringify(currentAnswers));
+      }
+    } else if (req.action === "reveal") {
+      sheet.getRange(rowIndex, 2).setValue("revealed");
     }
 
-    /* Notion 風格細緻捲軸 */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #D3D1CB; border-radius: 3px; }
-  </style>
-</head>
-<body class="min-h-screen flex flex-col justify-between antialiased selection:bg-morandi-sage/20">
+    return createJsonResponse({ success: true });
+  } catch (error) {
+    return createJsonResponse({ success: false, error: error.toString() });
+  } finally {
+    lock.releaseLock(); // 確保執行完畢一定釋放鎖定
+  }
+}
 
-  <!-- 輕量提示通知 (Toast，取代傳統 alert) -->
-  <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 opacity-0 pointer-events-none translate-y-[-10px]">
-    <div id="toastMsg" class="bg-morandi-ink text-white text-sm px-4 py-2.5 rounded-lg shadow-lg font-medium flex items-center gap-2">
-      <span>✨</span> <span id="toastText">通知</span>
-    </div>
-  </div>
-
-  <!-- 頂部導覽列 -->
-  <nav class="border-b border-morandi-stone bg-morandi-surface/80 backdrop-blur-md sticky top-0 z-30">
-    <div class="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-      <div class="flex items-center gap-2.5">
-        <div class="w-8 h-8 rounded-lg bg-morandi-sage text-white flex items-center justify-center font-bold shadow-sm">
-          🔮
-        </div>
-        <span class="font-semibold text-morandi-ink tracking-tight">雲端心電感應</span>
-        <span class="hidden sm:inline-block text-xs px-2 py-0.5 rounded bg-morandi-stone text-morandi-sub">v2.0</span>
-      </div>
-
-      <!-- 登入後的房間資訊標籤 -->
-      <div id="navRoomBadge" class="hidden flex items-center gap-2 text-xs sm:text-sm">
-        <button onclick="copyRoomCode()" title="點擊複製房號" class="flex items-center gap-1.5 bg-morandi-stone/70 hover:bg-morandi-stone px-3 py-1.5 rounded-md transition text-morandi-ink font-medium">
-          <span>🔑 房號：</span>
-          <span id="navRoomId" class="font-bold text-morandi-sageDark">----</span>
-        </button>
-        <div class="bg-morandi-stone/70 px-3 py-1.5 rounded-md text-morandi-ink font-medium">
-          👤 <span id="navPlayerName">---</span>
-        </div>
-        <button onclick="leaveRoom()" class="text-morandi-sub hover:text-morandi-clay px-2 py-1 text-xs underline">
-          離開
-        </button>
-      </div>
-    </div>
-  </nav>
-
-  <!-- 主要工作區 -->
-  <main class="max-w-5xl mx-auto w-full flex-1 px-4 py-8 flex flex-col justify-center">
-
-    <!-- 畫面一：登入與房間分流 -->
-    <section id="loginScreen" class="max-w-md mx-auto w-full">
-      <div class="bg-morandi-surface border border-morandi-stone rounded-2xl p-6 sm:p-8 shadow-sm">
-        <div class="mb-6">
-          <h1 class="text-2xl font-bold text-morandi-ink mb-1">雲端心電感應</h1>
-          <p class="text-sm text-morandi-sub">輸入您的暱稱與房間代碼，立即與夥伴展開默契大考驗。</p>
-        </div>
-
-        <div class="space-y-4">
-          <div>
-            <label class="block text-xs font-semibold text-morandi-sub uppercase tracking-wider mb-1.5">您的顯示暱稱</label>
-            <input type="text" id="playerNameInput" maxlength="15" placeholder="例如：小宇" 
-              class="w-full px-3.5 py-2.5 bg-morandi-canvas border border-morandi-stone rounded-xl text-sm focus:outline-none focus:border-morandi-sage focus:bg-white transition">
-          </div>
-
-          <div>
-            <div class="flex justify-between items-center mb-1.5">
-              <label class="block text-xs font-semibold text-morandi-sub uppercase tracking-wider">房間代碼 (Room ID)</label>
-              <button type="button" onclick="generateRandomRoom()" class="text-xs text-morandi-sageDark hover:underline font-medium flex items-center gap-1">
-                🎲 隨機產生房號
-              </button>
-            </div>
-            <input type="text" id="roomCodeInput" maxlength="12" placeholder="輸入房號（例：8824）" 
-              class="w-full px-3.5 py-2.5 bg-morandi-canvas border border-morandi-stone rounded-xl text-sm font-mono uppercase focus:outline-none focus:border-morandi-sage focus:bg-white transition">
-          </div>
-
-          <button onclick="enterRoom()" class="w-full mt-2 py-3 bg-morandi-sage hover:bg-morandi-sageDark text-white font-medium rounded-xl text-sm transition shadow-sm active:scale-[0.99]">
-            進入房間 →
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- 畫面二：遊戲主畫面 -->
-    <section id="gameScreen" class="hidden space-y-6">
-      
-      <!-- 題目區塊 (Notion Callout 風格) -->
-      <div class="bg-morandi-surface border border-morandi-stone rounded-2xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
-        <div class="flex items-center justify-between mb-3">
-          <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-md bg-morandi-canvas text-morandi-sub border border-morandi-stone">
-            <span id="statusDot" class="w-2 h-2 rounded-full bg-morandi-sand animate-pulse"></span>
-            <span id="statusLabel">等待出題中</span>
-          </span>
-          <span class="text-xs text-morandi-sub">雲端即時同步</span>
-        </div>
-        
-        <h2 id="currentQuestionDisplay" class="text-xl sm:text-3xl font-bold text-morandi-ink leading-snug">
-          房主正在準備題目...
-        </h2>
-      </div>
-
-      <!-- 填答輸入框 -->
-      <div class="bg-morandi-surface border border-morandi-stone rounded-2xl p-4 sm:p-5 shadow-sm max-w-xl mx-auto w-full">
-        <form onsubmit="handleAnswerSubmit(event)" class="flex flex-col sm:flex-row gap-2.5">
-          <input type="text" id="answerInput" maxlength="40" placeholder="輸入直覺想到的第一個答案..." 
-            class="flex-1 px-4 py-2.5 bg-morandi-canvas border border-morandi-stone rounded-xl text-sm focus:outline-none focus:border-morandi-sage focus:bg-white transition">
-          <button type="submit" id="submitBtn" class="px-6 py-2.5 bg-morandi-ink hover:bg-morandi-sageDark text-white text-sm font-medium rounded-xl transition whitespace-nowrap">
-            送出答案
-          </button>
-        </form>
-        <div id="submittedFeedback" class="hidden mt-2.5 text-xs text-mor
+// 統一回傳 JSON 格式的輔助函式
+function createJsonResponse(payload) {
+  return ContentService.createTextOutput(JSON.stringify(payload))
+    .setMimeType(ContentService.MimeType.JSON);
+}
